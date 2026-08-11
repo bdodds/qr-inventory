@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Container Inventory</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Inventory</p>
+          <h1>Containers and items</h1>
+        </div>
+        <div class="stats" aria-live="polite">
+          <span><strong id="containerCount">0</strong> containers</span>
+          <span><strong id="itemCount">0</strong> item types</span>
+          <span><strong id="unitCount">0</strong> total units</span>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="Inventory controls">
+        <label class="search-field">
+          <span>Search</span>
+          <input id="searchInput" type="search" placeholder="Find containers or items" autocomplete="off" />
+        </label>
+        <div class="toolbar-actions">
+          <button id="showCategoryPanel" class="ghost-button" type="button">Categories</button>
+          <button id="printMultipleQr" class="ghost-button" type="button">Print multiple QR</button>
+          <button id="showAddContainer" class="primary-button" type="button">Add container</button>
+        </div>
+      </section>
+
+      <section id="message" class="message" role="status" aria-live="polite"></section>
+
+      <section id="categoryPanel" class="form-panel hidden" aria-label="Category manager">
+        <div class="section-heading">
+          <h2>Categories</h2>
+        </div>
+        <form id="categoryForm" class="category-form">
+          <input type="hidden" id="categoryId" />
+          <label>
+            Category name
+            <input id="categoryName" type="text" maxlength="80" required />
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">Save category</button>
+            <button id="cancelCategoryForm" class="ghost-button" type="button">Cancel</button>
+          </div>
+        </form>
+        <div id="categories" class="category-list"></div>
+      </section>
+
+      <section id="containerFormPanel" class="form-panel hidden" aria-label="Container form">
+        <form id="containerForm">
+          <input type="hidden" id="containerId" />
+          <label>
+            Container name
+            <input id="containerName" type="text" maxlength="80" required />
+          </label>
+          <label>
+            Category
+            <select id="containerCategory"></select>
+          </label>
+          <label>
+            Description
+            <textarea id="containerDescription" rows="2" maxlength="240"></textarea>
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit">Save container</button>
+            <button id="cancelContainerForm" class="ghost-button" type="button">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <div class="content-grid">
+        <aside class="container-list" aria-label="Containers">
+          <div class="section-heading">
+            <h2>Containers</h2>
+          </div>
+          <div id="containers"></div>
+        </aside>
+
+        <section class="details" aria-label="Container details">
+          <div id="emptyState" class="empty-state">
+            <h2>No container selected</h2>
+            <p>Add or select a container to manage the items inside it.</p>
+          </div>
+
+          <div id="detailPanel" class="hidden">
+            <div class="detail-header">
+              <div>
+                <p class="eyebrow">Selected container</p>
+                <h2 id="detailName"></h2>
+                <p id="detailCategory" class="category-badge hidden"></p>
+                <p id="detailDescription"></p>
+              </div>
+              <div class="detail-actions">
+                <button id="editContainer" class="ghost-button" type="button">Edit</button>
+                <button id="deleteContainer" class="danger-button" type="button">Delete</button>
+              </div>
+            </div>
+
+            <section class="qr-panel" aria-label="QR code">
+              <img id="qrImage" alt="" />
+              <div class="qr-content">
+                <p class="eyebrow">QR label</p>
+                <label>
+                  Direct URL
+                  <input id="qrUrl" type="text" readonly />
+                </label>
+                <div class="form-actions">
+                  <button id="openQrUrl" class="ghost-button" type="button">Open</button>
+                  <button id="copyQrUrl" class="ghost-button" type="button">Copy URL</button>
+                  <button id="printQr" class="primary-button" type="button">Print QR</button>
+                </div>
+              </div>
+            </section>
+
+            <form id="itemForm" class="item-form">
+              <input type="hidden" id="itemId" />
+              <label>
+                Item
+                <input id="itemName" type="text" maxlength="100" required />
+              </label>
+              <label class="quantity-field">
+                Qty
+                <input id="itemQuantity" type="number" min="0" step="1" value="1" required />
+              </label>
+              <label>
+                Notes
+                <input id="itemNotes" type="text" maxlength="240" />
+              </label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">Save item</button>
+                <button id="cancelItemForm" class="ghost-button hidden" type="button">Cancel edit</button>
+              </div>
+            </form>
+
+            <div class="section-heading items-heading">
+              <h2>Items</h2>
+              <span id="selectedSummary"></span>
+            </div>
+            <div id="items" class="items"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <dialog id="printSelectDialog" class="print-select-dialog" aria-label="Select QR codes to print">
+      <form method="dialog" id="printSelectForm">
+        <div class="section-heading">
+          <h2>Print QR labels</h2>
+        </div>
+        <p class="dialog-hint">Choose which containers to include. Labels print 4 per page.</p>
+        <div class="dialog-select-actions">
+          <button id="printSelectAll" class="ghost-button" type="button">Select all</button>
+          <button id="printSelectNone" class="ghost-button" type="button">Select none</button>
+        </div>
+        <div id="printSelectList" class="print-select-list"></div>
+        <div class="form-actions">
+          <button id="printSelectedQr" class="primary-button" type="submit">Print selected</button>
+          <button id="cancelPrintSelectDialog" class="ghost-button" type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
