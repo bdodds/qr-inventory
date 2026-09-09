@@ -4,6 +4,7 @@ const state = {
   items: [],
   selectedContainerId: null,
   editingItemId: null,
+  searchTerm: "",
 };
 
 const elements = {
@@ -41,6 +42,9 @@ const elements = {
   detailCategory: document.querySelector("#detailCategory"),
   detailDescription: document.querySelector("#detailDescription"),
   selectedSummary: document.querySelector("#selectedSummary"),
+  searchResultsPanel: document.querySelector("#searchResultsPanel"),
+  searchResultsSummary: document.querySelector("#searchResultsSummary"),
+  searchResults: document.querySelector("#searchResults"),
   editContainer: document.querySelector("#editContainer"),
   deleteContainer: document.querySelector("#deleteContainer"),
   qrImage: document.querySelector("#qrImage"),
@@ -109,12 +113,18 @@ function renderStats() {
 }
 
 function renderContainers() {
+  const containers = filteredContainers();
+
   if (state.containers.length === 0) {
     elements.containers.innerHTML = `<div class="muted-empty">No containers yet.</div>`;
     return;
   }
+  if (containers.length === 0) {
+    elements.containers.innerHTML = `<div class="muted-empty">No matching containers.</div>`;
+    return;
+  }
 
-  elements.containers.innerHTML = state.containers
+  elements.containers.innerHTML = containers
     .map(
       (container) => `
         <button class="container-card ${container.id === state.selectedContainerId ? "active" : ""}" data-container-id="${container.id}" type="button">
@@ -149,6 +159,7 @@ function renderDetails() {
   if (!container) {
     elements.emptyState.classList.remove("hidden");
     elements.detailPanel.classList.add("hidden");
+    renderSearchResults();
     return;
   }
 
@@ -172,6 +183,7 @@ function renderDetails() {
 
   if (items.length === 0) {
     elements.items.innerHTML = `<div class="muted-empty">No items in this container yet.</div>`;
+    renderSearchResults();
     return;
   }
 
@@ -200,6 +212,7 @@ function renderDetails() {
   document.querySelectorAll("[data-delete-item]").forEach((button) => {
     button.addEventListener("click", () => deleteItem(Number(button.dataset.deleteItem)));
   });
+  renderSearchResults();
 }
 
 function selectedContainer() {
@@ -210,6 +223,90 @@ function selectedItems() {
   return state.items
     .filter((item) => item.container_id === state.selectedContainerId)
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function normalizedSearchTerm() {
+  return state.searchTerm.trim().toLowerCase();
+}
+
+function textMatchesSearch(value, term = normalizedSearchTerm()) {
+  return String(value || "").toLowerCase().includes(term);
+}
+
+function itemMatchesSearch(item, term = normalizedSearchTerm()) {
+  return [item.name, item.notes, item.container_name].some((value) =>
+    textMatchesSearch(value, term)
+  );
+}
+
+function containerMatchesSearch(container, term = normalizedSearchTerm()) {
+  const ownMatch = [container.name, container.description, container.category_name].some((value) =>
+    textMatchesSearch(value, term)
+  );
+  const itemMatch = state.items.some(
+    (item) => item.container_id === container.id && itemMatchesSearch(item, term)
+  );
+  return ownMatch || itemMatch;
+}
+
+function filteredContainers() {
+  const term = normalizedSearchTerm();
+  if (!term) return state.containers;
+  return state.containers.filter((container) => containerMatchesSearch(container, term));
+}
+
+function matchingItems() {
+  const term = normalizedSearchTerm();
+  if (!term) return [];
+  return state.items
+    .filter((item) => itemMatchesSearch(item, term))
+    .sort((a, b) => {
+      const containerCompare = a.container_name.localeCompare(b.container_name);
+      return containerCompare || a.name.localeCompare(b.name);
+    });
+}
+
+function renderSearchResults() {
+  const term = normalizedSearchTerm();
+  if (!term) {
+    elements.searchResultsPanel.classList.add("hidden");
+    elements.searchResults.innerHTML = "";
+    elements.searchResultsSummary.textContent = "";
+    return;
+  }
+
+  const items = matchingItems();
+  elements.searchResultsPanel.classList.remove("hidden");
+  elements.searchResultsSummary.textContent = `${items.length} matches`;
+
+  if (items.length === 0) {
+    elements.searchResults.innerHTML = `<div class="muted-empty">No matching items.</div>`;
+    return;
+  }
+
+  elements.searchResults.innerHTML = items
+    .map(
+      (item) => `
+        <button class="search-result-row" data-result-container-id="${item.container_id}" type="button">
+          <span class="search-result-main">
+            <strong>${escapeHtml(item.name)}</strong>
+            ${item.notes ? `<span>${escapeHtml(item.notes)}</span>` : ""}
+          </span>
+          <span class="quantity-pill">${item.quantity}</span>
+          <span class="search-result-location">${escapeHtml(item.container_name)}</span>
+        </button>
+      `
+    )
+    .join("");
+
+  document.querySelectorAll("[data-result-container-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedContainerId = Number(button.dataset.resultContainerId);
+      updateSelectedUrl();
+      resetItemForm();
+      render();
+    });
+  });
 }
 
 function renderCategoryOptions() {
@@ -522,30 +619,8 @@ async function deleteItem(itemId) {
 }
 
 function applyLocalSearch() {
-  const term = elements.searchInput.value.trim().toLowerCase();
-  if (!term) {
-    render();
-    return;
-  }
-
-  const matchingItems = state.items.filter((item) => {
-    return [item.name, item.notes, item.container_name].some((value) =>
-      String(value || "").toLowerCase().includes(term)
-    );
-  });
-  const matchingContainerIds = new Set(matchingItems.map((item) => item.container_id));
-  const originalContainers = state.containers;
-  const originalItems = state.items;
-  state.containers = originalContainers.filter((container) => {
-    const ownMatch = [container.name, container.description].some((value) =>
-      String(value || "").toLowerCase().includes(term)
-    );
-    return ownMatch || matchingContainerIds.has(container.id);
-  });
-  state.items = matchingItems;
+  state.searchTerm = elements.searchInput.value;
   render();
-  state.containers = originalContainers;
-  state.items = originalItems;
 }
 
 function escapeHtml(value) {
