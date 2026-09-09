@@ -1,12 +1,13 @@
+
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Container Inventory</title>
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=20260909" />
+    <link rel="apple-touch-icon" href="/favicon.png?v=20260909" />
+    <link rel="stylesheet" href="/styles.css?v=20260909" />
   </head>
   <body>
     <main class="app-shell">
@@ -120,6 +121,14 @@
               </div>
             </section>
 
+            <section id="searchResultsPanel" class="search-results-panel hidden" aria-label="Matching items">
+              <div class="section-heading">
+                <h2>Matching items</h2>
+                <span id="searchResultsSummary"></span>
+              </div>
+              <div id="searchResults" class="search-results"></div>
+            </section>
+
             <form id="itemForm" class="item-form">
               <input type="hidden" id="itemId" />
               <label>
@@ -168,6 +177,6 @@
       </form>
     </dialog>
 
-    <script src="/app.js"></script>
+    <script src="/app.js?v=20260909"></script>
   </body>
 </html>
